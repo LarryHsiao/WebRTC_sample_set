@@ -3,7 +3,7 @@ var name;
 var connectedUser;
 
 //connecting to our signaling server
-var conn = new WebSocket('ws://localhost:9090');
+var conn = new WebSocket('ws://192.168.1.96:9090');
 
 conn.onopen = function () {
     console.log("Connected to the signaling server");
@@ -19,14 +19,12 @@ conn.onmessage = function (msg) {
         case "login":
             handleLogin(data.success);
             break;
-        //when somebody wants to call us
         case "offer":
-            handleOffer(data.offer, data.name);
+            handleOffer(data.sessionDescription, data.offerName);
             break;
         case "answer":
-            handleAnswer(data.answer);
+            handleAnswer(data.sessionDescription);
             break;
-        //when a remote peer sends an ice candidate to us
         case "candidate":
             handleCandidate(data.candidate);
             break;
@@ -146,13 +144,13 @@ callBtn.addEventListener("click", function () {
         connectedUser = callToUsername;
 
         // create an offer
-        yourConn.createOffer(function (offer) {
+        yourConn.createOffer(function (sessionDescription) {
             send({
                 type: "offer",
-                offer: offer
+                sessionDescription: sessionDescription
             });
 
-            yourConn.setLocalDescription(offer);
+            yourConn.setLocalDescription(sessionDescription);
         }, function (error) {
             alert("Error when creating an offer");
         });
@@ -166,12 +164,13 @@ function handleOffer(offer, name) {
     yourConn.setRemoteDescription(new RTCSessionDescription(offer));
 
     //create an answer to an offer
-    yourConn.createAnswer(function (answer) {
-        yourConn.setLocalDescription(answer);
+    yourConn.createAnswer(function (descriptionObj) {
+        yourConn.setLocalDescription(descriptionObj);
 
         send({
+            offerName: name,
             type: "answer",
-            answer: answer
+            sessionDescription: descriptionObj
         });
 
     }, function (error) {
@@ -180,8 +179,8 @@ function handleOffer(offer, name) {
 };
 
 //when we got an answer from a remote user
-function handleAnswer(answer) {
-    yourConn.setRemoteDescription(new RTCSessionDescription(answer));
+function handleAnswer(sessionDescription) {
+    yourConn.setRemoteDescription(new RTCSessionDescription(sessionDescription));
 };
 
 //when we got an ice candidate from a remote user
